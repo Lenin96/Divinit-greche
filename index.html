@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Olympos Interattivo - Albero Genealogico e Miti Greci</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        greek: {
+                            gold: '#f59e0b',
+                            darkGold: '#b45309',
+                            blue: '#0284c7',
+                            darkBg: '#0b1329',
+                            cardBg: '#1e293b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tone.js for Sound Effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #080d1a;
+            color: #f1f5f9;
+        }
+        .font-cinzel {
+            font-family: 'Cinzel', serif;
+        }
+        .god-node {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .god-node:hover {
+            transform: translateY(-4px) scale(1.03);
+        }
+        .node-highlight-parent {
+            box-shadow: 0 0 20px 4px rgba(245, 158, 11, 0.8) !important;
+            border-color: #f59e0b !important;
+        }
+        .node-highlight-child {
+            box-shadow: 0 0 20px 4px rgba(56, 189, 248, 0.8) !important;
+            border-color: #38bdf8 !important;
+        }
+        .node-highlight-spouse {
+            box-shadow: 0 0 20px 4px rgba(244, 63, 94, 0.8) !important;
+            border-color: #f43f5e !important;
+        }
+        .node-highlight-sibling {
+            box-shadow: 0 0 20px 4px rgba(168, 85, 247, 0.8) !important;
+            border-color: #a855f7 !important;
+        }
+        
+        /* Perspective Card Flip */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .transform-style-3d {
+            transform-style: preserve-3d;
+        }
+        .backface-hidden {
+            backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d97706;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-amber-500 selection:text-slate-900">
+
+    <!-- HEADER DIDATTICO INTERATTIVO -->
+    <header class="bg-slate-900/95 border-b-2 border-amber-600/50 shadow-2xl sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400">
+                    <i class="fa-solid fa-monument text-2xl sm:text-3xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-cinzel text-xl sm:text-2xl font-bold tracking-wider text-amber-400">
+                        OLYMPOS <span class="text-xs text-amber-200/70 font-sans font-normal block sm:inline">| Laboratorio Didattico Interattivo</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Parentele, Miti e Simboli degli Dei dell'Antica Grecia</p>
+                </div>
+            </div>
+
+            <!-- Interruttore Greco/Romano e Modalità -->
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Toggle Greco / Romano -->
+                <div class="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
+                    <button id="btn-greek" onclick="setNamingConvention('greek')" class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-500 text-slate-900 transition-all">
+                        🏛️ Greci
+                    </button>
+                    <button id="btn-roman" onclick="setNamingConvention('roman')" class="px-2.5 py-1 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 transition-all">
+                        🦅 Romani
+                    </button>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="flex gap-1 text-xs">
+                    <button onclick="switchTab('tree')" id="tab-btn-tree" class="tab-active px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5">
+                        <i class="fa-solid fa-sitemap"></i> <span class="hidden sm:inline">Albero</span>
+                    </button>
+                    <button onclick="switchTab('flashcards')" id="tab-btn-flashcards" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1.5">
+                        <i class="fa-solid fa-clone"></i> <span class="hidden sm:inline">Flashcard</span>
+                    </button>
+                    <button onclick="switchTab('matching')" id="tab-btn-matching" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1.5">
+                        <i class="fa-solid fa-puzzle-piece"></i> <span class="hidden sm:inline">Gioco Simboli</span>
+                    </button>
+                    <button onclick="switchTab('quiz')" id="tab-btn-quiz" class="px-3 py-1.5 rounded-lg bg-indigo-900/40 hover:bg-indigo-800/40 text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5">
+                        <i class="fa-solid fa-trophy"></i> <span class="hidden sm:inline">Quiz</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex-grow w-full space-y-8">
+
+        <!-- INTRODUZIONE DIDATTICA CON GUIDA INTERATTIVA -->
+        <section class="bg-slate-800/80 border border-amber-500/30 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div class="space-y-2">
+                    <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-xs font-semibold uppercase tracking-wider border border-amber-500/20">
+                        <i class="fa-solid fa-chalkboard-user"></i> Guida per la Lezione
+                    </div>
+                    <h2 class="font-cinzel text-lg sm:text-xl font-bold text-slate-100">
+                        Esplora le parentele in modo dinamico!
+                    </h2>
+                    <p class="text-slate-300 text-xs sm:text-sm max-w-3xl leading-relaxed">
+                        Clicca su un dio nell'albero per evidenziare visivamente la sua famiglia: 
+                        <span class="text-amber-400 font-semibold">Genitori (Oro)</span>, 
+                        <span class="text-sky-400 font-semibold">Figli (Azzurro)</span>, 
+                        <span class="text-pink-400 font-semibold">Coniuge (Rosa)</span> e 
+                        <span class="text-purple-400 font-semibold">Fratelli (Viola)</span>. Usa il selettore in alto per passare dai nomi greci a quelli romani.
+                    </p>
+                </div>
+                <div class="flex items-center gap-2 self-stretch md:self-auto bg-slate-900/70 p-3 rounded-xl border border-slate-700 text-xs">
+                    <i class="fa-solid fa-volume-high text-amber-400 text-lg"></i>
+                    <div>
+                        <span class="font-semibold text-slate-200 block">Sintesi Vocale Inclusiva</span>
+                        <span class="text-slate-400 text-[11px]">Clicca l'icona audio nelle schede per la lettura</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEZIONE TAB 1: ALBERO GENEALOGICO INTERATTIVO -->
+        <div id="view-tree" class="tab-view space-y-6">
+
+            <!-- SEARCH AND FILTER BAR -->
+            <div class="flex flex-col sm:flex-row gap-3 justify-between items-center bg-slate-800/60 p-4 rounded-xl border border-slate-700">
+                <div class="relative w-full sm:w-80">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                    <input type="text" id="search-god" oninput="handleSearch()" placeholder="Cerca un dio, simbolo o potere..." 
+                           class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500 transition-all">
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 text-xs w-full sm:w-auto justify-end">
+                    <span class="text-slate-400 font-semibold mr-1">Filtra:</span>
+                    <button onclick="filterTree('all')" class="filter-btn active px-2.5 py-1 rounded-lg bg-amber-500 text-slate-900 font-semibold transition-all">Tutti</button>
+                    <button onclick="filterTree('1gen')" class="filter-btn px-2.5 py-1 rounded-lg bg-slate-800 text-sky-300 border border-sky-500/30 transition-all">1ª Generazione</button>
+                    <button onclick="filterTree('2gen')" class="filter-btn px-2.5 py-1 rounded-lg bg-slate-800 text-purple-300 border border-purple-500/30 transition-all">2ª Generazione</button>
+                    <button onclick="resetHighlights()" class="px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition-all flex items-center gap-1">
+                        <i class="fa-solid fa-rotate-right"></i> Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- VISUAL TREE CONTAINER -->
+            <div class="overflow-x-auto pb-4 pt-2">
+                <div class="min-w-[1050px] bg-slate-900/90 p-8 rounded-2xl border border-slate-800 shadow-2xl relative flex flex-col items-center gap-8">
+                    
+                    <!-- LEGENDA RELAZIONI -->
+                    <div id="relationship-legend" class="hidden w-full bg-slate-800/90 p-3 rounded-xl border border-slate-700 flex flex-wrap justify-center items-center gap-6 text-xs animate-fade-in">
+                        <span class="text-slate-300 font-semibold">Relazioni di <strong id="legend-god-name" class="text-amber-400">...</strong>:</span>
+                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-square text-amber-500"></i> Genitori</span>
+                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-square text-rose-500"></i> Coniuge / Partner</span>
+                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-square text-purple-500"></i> Fratelli/Sorelle</span>
+                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-square text-sky-400"></i> Figli</span>
+                    </div>
+
+                    <!-- LEVEL 0: CRONO & REA (TITANI) -->
+                    <div class="flex flex-col items-center">
+                        <div id="node-crono_rea" class="god-node cursor-pointer px-6 py-2.5 bg-gradient-to-r from-amber-950 via-slate-900 to-amber-950 border-2 border-amber-600/80 rounded-xl text-center shadow-lg">
+                            <span class="text-[10px] uppercase tracking-widest text-amber-400 font-semibold block">Titani Originari</span>
+                            <h3 class="font-cinzel text-lg font-bold text-amber-200">CRONO & REA</h3>
+                            <p class="text-xs text-slate-400">Signori del Tempo e della Terra Primordiale</p>
+                        </div>
+                        <div class="w-0.5 h-8 bg-amber-500/80 my-1"></div>
+                    </div>
+
+                    <!-- LEVEL 1: PRIMA GENERAZIONE -->
+                    <div class="w-full">
+                        <div class="text-center mb-3">
+                            <span class="px-3 py-1 rounded-full bg-sky-950 border border-sky-500/40 text-sky-300 text-xs font-semibold">
+                                PRIMA GENERAZIONE OLIMPICA (Figli di Crono e Rea)
+                            </span>
+                        </div>
+
+                        <div class="border-t-2 border-sky-500/40 pt-6 grid grid-cols-5 gap-4">
+                            
+                            <!-- ZEUS -->
+                            <div id="node-zeus" onclick="inspectGod('zeus')" class="god-node cursor-pointer p-3 rounded-xl bg-slate-800 border border-sky-500/40 text-center flex flex-col items-center shadow-md">
+                                <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl mb-1 border border-amber-500/40">
+                                    <i class="fa-solid fa-bolt"></i>
+                                </div>
+                                <h4 class="god-name font-cinzel font-bold text-amber-300 text-sm">ZEUS</h4>
+                                <span class="god-roman text-[10px] text-slate-400 italic">(Giove)</span>
+                                <span class="text-[11px] text-slate-300 mt-1">Re degli Dei & Cielo</span>
+                            </div>
+
+                            <!-- ERA -->
+                            <div id="node-era" onclick="inspectGod('era')" class="god-node cursor-pointer p-3 rounded-xl bg-slate-800 border border-sky-500/40 text-center flex flex-col items-center shadow-md">
+                                <div class="w-12 h-12 rounded-full bg-pink-500/20 text-pink-400 flex items-center justify-center text-xl mb-1 border border-pink-500/40">
+                                    <i class="fa-solid fa-crown"></i>
+                                </div>
+                                <h4 class="god-name font-cinzel font-bold text-slate-200 text-sm">ERA</h4>
+                                <span class="god-roman text-[10px] text-slate-400 italic">(Giunone)</span>
+                                <span class="text-[11px] text-slate-300 mt-1">Regina del Matrimonio</span>
+                            </div>
+
+                            <!-- POSEIDONE -->
+                            <div id="node-poseidone" onclick="inspectGod('poseidone')" class="god-node cursor-pointer p-3 rounded-xl bg-slate-800 border border-sky-500/40 text-center flex flex-col items-center shadow-md">
+                                <div class="w-12 h-12 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xl mb-1 border border-cyan-500/40">
+                                    <i class="fa-solid fa-water"></i>
+                                </div>
+                                <h4 class="god-name font-cinzel font-bold text-slate-200 text-sm">POSEIDONE</h4>
+                                <span class="god-roman text-[10px] text-slate-400 italic">(Nettuno)</span>
+                                <span class="text-[11px] text-slate-300 mt-1">Signore dei Mari</span>
+                            </div>
+
+                            <!-- ADE -->
+                            <div id="node-ade" onclick="inspectGod('ade')" class="god-node cursor-pointer p-3 rounded-xl bg-slate-800 border border-sky-500/40 text-center flex flex-col items-center shadow-md">
+                                <div class="w-12 h-12 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-xl mb-1 border border-purple-500/40">
+                                    <i class="fa-solid fa-skull"></i>
+                                </div>
+                                <h4 class="god-name font-cinzel font-bold text-slate-200 text-sm">ADE</h4>
+                                <span class="god-roman text-[10px] text-slate-400 italic">(Plutone)</span>
+                                <span class="text-[11px] text-slate-300 mt-1">Re dell'Oltretomba</span>
+                            </div>
+
+                            <!-- DEMETRA -->
+                            <div id="node-demetra" onclick="inspectGod('demetra')" class="god-node cursor-pointer p-3 rounded-xl bg-slate-800 border border-sky-500/40 text-center flex flex-col items-center shadow-md">
+                                <div class="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl mb-1 border border-emerald-500/40">
+                                    <i class="fa-solid fa-wheat-awn"></i>
+                                </div>
+                                <h4 class="god-name font-cinzel font-bold text-slate-200 text-sm">DEMETRA</h4>
+                                <span class="god-roman text-[10px] text-slate-400 italic">(Cerere)</span>
+                                <span class="text-[11px] text-slate-300 mt-1">Dea dell'Agricoltura</span>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- CONNECTOR TO 2ND GEN -->
+                    <div class="flex flex-col items-center my-1">
+                        <span class="text-xs text-amber-400 font-semibold bg-amber-950/90 px-4 py-1 rounded-full border border-amber-500/30">
+                            Unioni di Zeus con Era, Demetra, Leto, Maia, Metide
+                        </span>
+                        <div class="w-0.5 h-8 bg-purple-500/80 my-1"></div>
+                    </div>
+
+                    <!-- LEVEL 2: SECONDA GENERAZIONE -->
+                    <div class="w-full">
+                        <div class="text-center mb-3">
+                            <span class="px-3 py-1 rounded-full bg-purple-950 border border-purple-500/40 text-purple-300 text-xs font-semibold">
+                                SECONDA GENERAZIONE OLIMPICA (Figli di Zeus)
+                            </span>
+                        </div>
+
+                        <div class="border-t-2 border-purple-500/40 pt-6 grid grid-cols-7 gap-2.5">
+
+                            <!-- ATENA -->
+                            <div id="node-atena" onclick="inspectGod('atena')" class="god-node cursor-pointer p-2.5 rounded-xl bg-slate-800 border border-purple-500/30 text-center flex flex-col items-center">
+                                <div class="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-base mb-1">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                </div>
+                                <h5 class="god-name font-cinzel font-bold text-xs text-slate-200">ATENA</h5>
+                                <span class="god-roman text-[9px] text-slate-400 italic">(Minerva)</span>
+                                <span class="text-[10px] text-slate-400 mt-1">Saggezza</span>
+                            </div>
+
+                            <!-- APOLLO -->
+                            <div id="node-apollo" onclick="inspectGod('apollo')" class="god-node cursor-pointer p-2.5 rounded-xl bg-slate-800 border border-purple-500/30 text-center flex flex-col items-center">
+                                <div class="w-10 h-10 rounded-full bg-yellow-500/20 text-yellow-400 flex items-center justify-center text-base mb-1">
+                                    <i class="fa-solid fa-sun"></i>
+                                </div>
+                                <h5 class="god-name font-cinzel font-bold text-xs text-slate-200">APOLLO</h5>
+                                <span class="god-roman text-[9px] text-slate-400 italic">(Apollo)</span>
+                                <span class="text-[10px] text-slate-400 mt-1">Sole & Musica</span>
+                            </div>
+
+                            <!-- ARTEMIDE -->
+                            <div id="node-artemide" onclick="inspectGod('artemide')" class="god-node cursor-pointer p-2.5 rounded-xl bg-slate-800 border border-purple-500/30 text-center flex flex-col items-center">
+                                <div class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-base mb-1">
+                                    <i class="fa-solid fa-moon"></i>
+                                </div>
+                                <h5 class="god-name font-cinzel font-bold text-xs text-slate-200">ARTEMIDE</h5>
+                                <span class="god-roman text-[9px] text-slate-400 italic">(Diana)</span>
+                                <span class="text-[10px] text-slate-400 mt-1">Caccia & Luna</span>
+                            </div>
+
+                            <!-- ARES -->
+                            <div id="node-ares" onclick="inspectGod('ares')" class="god-node cursor-pointer p-2.5 rounded-xl bg-slate-800 border border-purple-500/30 text-center flex flex-col items-center">
+                                <div class="w-10 h-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-base mb-1">
+                                    <i class="fa-solid fa-skull-crossbones"></i>
+                                </div>
+                                <h5 class="god-name font-cinzel font-bold text-xs text-slate-200">ARES</h5>
+                                <span class="god-roman text-[9px] text-slate-400 italic">(Marte)</span>
+                                <span class="text-[10px] text-slate-400 mt-1">Guerra</span>
+                            </div>
+
+                            <!-- AFRODITE -->
+                            <div id="node-afrodite" onclick="inspectGod('afrodite')" class="god-node cursor-pointer p-2.5 rounded-xl bg-slate-800 border border-purple-500/30 text-center flex flex-col items-center">
+                                <div class="w-10 h-10 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-base mb-1">
+                                    <i class="fa-solid fa-heart"></i>
+                                </div>
+                                <h5 class="god-name font-cinzel font-bold text-xs text-slate-200">AFRODITE</h5>
+                                <span class="god-roman text-[9px] text-slate-400 italic">(Venere)</span>
+                                <span class="text-[10px] text-slate-400 mt-1">Amore</span>
+                            </div>
+
+                            <!-- ERMES -->
+                            <div id="node-ermes" onclick="inspectGod('ermes')" class="god-node cursor-pointer p-2.5 rounded-xl bg-slate-800 border border-purple-500/30 text-center flex flex-col items-center">
+                                <div class="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-base mb-1">
+                                    <i class="fa-solid fa-shoe-prints"></i>
+                                </div>
+                                <h5 class="god-name font-cinzel font-bold text-xs text-slate-200">ERMES</h5>
+                                <span class="god-roman text-[9px] text-slate-400 italic">(Mercurio)</span>
+                                <span class="text-[10px] text-slate-400 mt-1">Messaggero</span>
+                            </div>
+
+                            <!-- PERSEFONE -->
+                            <div id="node-persefone" onclick="inspectGod('persefone')" class="god-node cursor-pointer p-2.5 rounded-xl bg-slate-800 border-2 border-emerald-500/70 bg-emerald-950/30 text-center flex flex-col items-center">
+                                <div class="w-10 h-10 rounded-full bg-emerald-500/30 text-emerald-300 flex items-center justify-center text-base mb-1">
+                                    <i class="fa-solid fa-seedling"></i>
+                                </div>
+                                <h5 class="god-name font-cinzel font-bold text-xs text-emerald-300">PERSEFONE</h5>
+                                <span class="god-roman text-[9px] text-emerald-400/80 italic">(Proserpina)</span>
+                                <span class="text-[10px] text-slate-300 mt-1">Inferi & Primavera</span>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- SEZIONE TAB 2: FLASHCARD DIDATTICHE INTERATTIVE -->
+        <div id="view-flashcards" class="tab-view hidden space-y-6">
+            <div class="text-center space-y-2">
+                <h2 class="font-cinzel text-2xl font-bold text-amber-400">Flashcards da Ripasso</h2>
+                <p class="text-xs sm:text-sm text-slate-300">Clicca su ogni carta per ruotarla e scoprire i dettagli della divinità!</p>
+            </div>
+
+            <div id="flashcards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Direct JS rendering will fill this -->
+            </div>
+        </div>
+
+        <!-- SEZIONE TAB 3: GIOCO "ASSOCIA IL SIMBOLO" -->
+        <div id="view-matching" class="tab-view hidden space-y-6">
+            <div class="bg-slate-800/80 p-6 rounded-2xl border border-amber-500/30 shadow-xl space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-700 pb-4">
+                    <div>
+                        <h2 class="font-cinzel text-xl sm:text-2xl font-bold text-amber-400">Sfida dei Simboli Sacri</h2>
+                        <p class="text-xs sm:text-sm text-slate-300">Seleziona una divinità e poi clicca sul suo simbolo corrispondente!</p>
+                    </div>
+                    <div class="flex items-center gap-4 text-sm font-semibold">
+                        <span class="text-emerald-400"><i class="fa-solid fa-circle-check"></i> Corretti: <span id="matching-score">0</span>/6</span>
+                        <button onclick="resetMatchingGame()" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs text-slate-200">
+                            <i class="fa-solid fa-rotate-right"></i> Ricomincia
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- GODS LIST -->
+                    <div class="space-y-3">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400">1. Scegli la Divinità:</h3>
+                        <div id="matching-gods" class="grid grid-cols-2 gap-2.5">
+                            <!-- JS Populated -->
+                        </div>
+                    </div>
+
+                    <!-- SYMBOLS LIST -->
+                    <div class="space-y-3">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-sky-400">2. Seleziona il Simbolo Giusto:</h3>
+                        <div id="matching-symbols" class="grid grid-cols-2 gap-2.5">
+                            <!-- JS Populated -->
+                        </div>
+                    </div>
+                </div>
+
+                <div id="matching-feedback" class="hidden text-center p-3 rounded-xl font-bold text-xs sm:text-sm"></div>
+            </div>
+        </div>
+
+        <!-- SEZIONE TAB 4: QUIZ GAMIFICATO CON PUNTEGGIO -->
+        <div id="view-quiz" class="tab-view hidden space-y-6">
+            <div class="bg-slate-800/90 p-6 sm:p-8 rounded-2xl border border-indigo-500/40 shadow-2xl space-y-6">
+                
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-700 pb-4">
+                    <div>
+                        <h2 class="font-cinzel text-xl sm:text-2xl font-bold text-indigo-300">Quiz di Ripasso Olimpo</h2>
+                        <p class="text-xs sm:text-sm text-slate-300">Rispondi alle domande per verificare la tua preparazione sul mito greco.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="px-3 py-1.5 rounded-xl bg-indigo-950 border border-indigo-500/30 text-indigo-300 text-xs font-bold">
+                            Punti: <span id="quiz-score" class="text-amber-400 text-sm">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="quiz-container" class="space-y-6">
+                    <!-- Quiz question box will be dynamically rendered here -->
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL ISPETTORE DIO -->
+    <div id="god-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border-2 border-amber-500/50 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative space-y-5 max-h-[90vh] overflow-y-auto">
+            
+            <button onclick="closeGodModal()" class="absolute top-4 right-4 text-slate-400 hover:text-amber-400 text-xl transition-all">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-4 border-b border-slate-800 pb-4">
+                <div id="modal-icon" class="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-400 text-amber-400 flex items-center justify-center text-2xl">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 id="modal-title" class="font-cinzel text-2xl font-bold text-amber-300">ZEUS</h3>
+                        <span id="modal-roman" class="text-xs text-slate-400 italic bg-slate-800 px-2 py-0.5 rounded border border-slate-700">(Giove)</span>
+                    </div>
+                    <p id="modal-subtitle" class="text-xs text-slate-300">Re degli Dei, Signore del Cielo</p>
+                </div>
+            </div>
+
+            <!-- RELATIONS SUMMARY -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-slate-800/60 p-3.5 rounded-xl border border-slate-700/60">
+                <div><strong class="text-amber-400"><i class="fa-solid fa-users text-xs"></i> Genitori:</strong> <span id="modal-parents" class="text-slate-200">Crono e Rea</span></div>
+                <div><strong class="text-rose-400"><i class="fa-solid fa-heart text-xs"></i> Coniuge/Sposo:</strong> <span id="modal-spouse" class="text-slate-200">Era</span></div>
+                <div><strong class="text-purple-400"><i class="fa-solid fa-people-roof text-xs"></i> Fratelli/Sorelle:</strong> <span id="modal-siblings" class="text-slate-200">Poseidone, Ade...</span></div>
+                <div><strong class="text-sky-400"><i class="fa-solid fa-child text-xs"></i> Figli Celebri:</strong> <span id="modal-children" class="text-slate-200">Atena, Apollo...</span></div>
+            </div>
+
+            <!-- MITO E SIMBOLI -->
+            <div class="space-y-3">
+                <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Simboli Sacri</h4>
+                <div id="modal-symbols" class="flex flex-wrap gap-1.5 text-xs">
+                    <!-- Symbols badges -->
+                </div>
+
+                <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider pt-2">Mito e Significato Didattico</h4>
+                <p id="modal-description" class="text-xs text-slate-300 leading-relaxed bg-slate-800/40 p-3 rounded-xl border border-slate-700/40">
+                    <!-- Text description -->
+                </p>
+            </div>
+
+            <!-- CONTROLI AUDIO VOCALE -->
+            <div class="flex justify-between items-center pt-2 border-t border-slate-800">
+                <button id="btn-read-aloud" onclick="readGodDescription()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold text-xs flex items-center gap-2 transition-all shadow-md">
+                    <i class="fa-solid fa-volume-high"></i> Ascolta il Mito (Sintesi Vocale)
+                </button>
+                <button onclick="closeGodModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">
+                    Chiudi
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-5 text-center text-xs text-slate-400">
+        <div class="max-w-7xl mx-auto px-4 space-y-1">
+            <p class="font-cinzel text-amber-400 font-bold">Laboratorio Didattico Digitale - Scuola Secondaria di Primo Grado</p>
+            <p class="text-slate-500 text-[11px]">Italiano, Storia e Geografia | Strumenti Inclusivi per BES e DSA</p>
+        </div>
+    </footer>
+
+    <script>
+        /* DATA STRUCTURE FOR ALL GODS */
+        const GODS_DATA = {
+            crono_rea: {
+                id: 'crono_rea',
+                nameGreek: 'CRONO & REA',
+                nameRoman: 'Saturno & Opi',
+                title: 'Titani Originari',
+                parents: 'Urano (Cielo) e Gaia (Terra)',
+                spouse: 'Unione tra Titani',
+                siblings: 'I dodici Titani originari',
+                children: ['zeus', 'era', 'poseidone', 'ade', 'demetra'],
+                icon: 'fa-hourglass-half',
+                symbols: ['Falce del Tempo', 'Terra madre'],
+                desc: 'Crono e Rea sono i grandi Titani che hanno governato il mondo prima degli dei dell\'Olimpo. Crono divorava i suoi figli per paura di essere scalzato dal trono, ma Rea salvò il piccolo Zeus scambiandolo con una pietra.'
+            },
+            zeus: {
+                id: 'zeus',
+                gen: '1gen',
+                nameGreek: 'ZEUS',
+                nameRoman: 'Giove',
+                title: 'Re degli Dei, Signore del Cielo e del Fulmine',
+                parents: 'Crono e Rea',
+                spouse: 'Era (sua sorella)',
+                siblings: 'Poseidone, Ade, Era, Demetra',
+                children: ['atena', 'apollo', 'artemide', 'ares', 'afrodite', 'ermes', 'persefone'],
+                icon: 'fa-bolt',
+                symbols: ['Fulmine', 'Aquila sovrana', 'Scettro', 'Quercia sacra'],
+                desc: 'Zeus è il re supreme dell\'Olimpo e garante della giustizia divina. Ha sconfitto il padre Crono nella Titanomachia dividendo il governo del mondo con i fratelli Poseidone e Ade.'
+            },
+            era: {
+                id: 'era',
+                gen: '1gen',
+                nameGreek: 'ERA',
+                nameRoman: 'Giunone',
+                title: 'Regina degli Dei e Protettrice del Matrimonio',
+                parents: 'Crono e Rea',
+                spouse: 'Zeus (anche suo fratello)',
+                siblings: 'Zeus, Poseidone, Ade, Demetra',
+                children: ['ares', 'Efesto', 'Ebe', 'Ilizia'],
+                icon: 'fa-crown',
+                symbols: ['Pavone dai mille occhi', 'Diadema reale', 'Melagrana'],
+                desc: 'Era è la regina dei cieli e protettrice della famiglia e del parto. Nei racconti mitologici si mostra fiera e rigorosa, difendendo la sacralità del matrimonio.'
+            },
+            poseidone: {
+                id: 'poseidone',
+                gen: '1gen',
+                nameGreek: 'POSEIDONE',
+                nameRoman: 'Nettuno',
+                title: 'Dio del Mare, dei Terremoti e dei Cavalli',
+                parents: 'Crono e Rea',
+                spouse: 'Anfitrite',
+                siblings: 'Zeus, Ade, Era, Demetra',
+                children: ['Tritone', 'Polifemo (Ciclope)'],
+                icon: 'fa-water',
+                symbols: ['Tridente', 'Cavalli marini (Ippocampi)', 'Delfini'],
+                desc: 'Signore incontrollabile degli oceani e delle scosse telluriche. Quando sbatte il suo tridente causa terribili tempeste ed eruzioni.'
+            },
+            ade: {
+                id: 'ade',
+                gen: '1gen',
+                nameGreek: 'ADE',
+                nameRoman: 'Plutone',
+                title: 'Signore dell\'Oltretomba e del Regno dei Morti',
+                parents: 'Crono e Rea',
+                spouse: 'Persefone (sua nipote)',
+                siblings: 'Zeus, Poseidone, Era, Demetra',
+                children: ['Nessuno diretto nei miti olimpici'],
+                icon: 'fa-skull',
+                symbols: ['Cerbero (cane a tre teste)', 'Elmo dell\'invisibilità', 'Trono d\'ebano'],
+                desc: 'Governa il regno sotterraneo dove risiedono le anime dei defunti. Non vive sull\'Olimpo. Rapisce Persefone per averla al suo fianco come regina degli Inferi.'
+            },
+            demetra: {
+                id: 'demetra',
+                gen: '1gen',
+                nameGreek: 'DEMETRA',
+                nameRoman: 'Cerere',
+                title: 'Dea dell\'Agricoltura, Fertilità e Mietitura',
+                parents: 'Crono e Rea',
+                spouse: 'Unione con Zeus',
+                siblings: 'Zeus, Poseidone, Ade, Era',
+                children: ['persefone'],
+                icon: 'fa-wheat-awn',
+                symbols: ['Spighe di grano', 'Fiaccola accesam', 'Cornucopia'],
+                desc: 'Demetra insegna agli uomini l\'agricoltura. Il suo dolore per la scomparsa della figlia Persefone fa seccare la Terra, dando origine alle stagioni.'
+            },
+            persefone: {
+                id: 'persefone',
+                gen: '2gen',
+                nameGreek: 'PERSEFONE',
+                nameRoman: 'Proserpina',
+                title: 'Regina degli Inferi e Dea della Primavera',
+                parents: 'Zeus e Demetra',
+                spouse: 'Ade (suo zio paterno/materno)',
+                siblings: 'Atena, Apollo, Artemide, Ares, Ermes (fratellastri)',
+                children: ['Nessuno'],
+                icon: 'fa-seedling',
+                symbols: ['Chicchi di Melagrana', 'Fiori di Narciso', 'Torcia'],
+                desc: 'Simbolo dell\'alternarsi delle stagioni: vive 6 mesi negli Inferi con Ade (Autunno/Inverno) e 6 mesi sulla Terra con la madre Demetra (Primavera/Estate, quando la terra fiorisce).'
+            },
+            atena: {
+                id: 'atena',
+                gen: '2gen',
+                nameGreek: 'ATENA',
+                nameRoman: 'Minerva',
+                title: 'Dea della Saggezza, Arti e Guerra Tattica',
+                parents: 'Zeus e Metide (inghiottita da Zeus)',
+                spouse: 'Nessuno (Dea Vergine)',
+                siblings: 'Apollo, Artemide, Ares, Ermes (fratellastri)',
+                children: ['Nessuno'],
+                icon: 'fa-shield-halved',
+                symbols: ['Civetta della saggezza', 'Lancia & Scudo Egida', 'Ramo d\'Olivo'],
+                desc: 'Nata già adulta ed armata dalla testa di Zeus. Rappresenta l\'intelligenza strategica, la filosofia e la protezione della città di Atene.'
+            },
+            apollo: {
+                id: 'apollo',
+                gen: '2gen',
+                nameGreek: 'APOLLO',
+                nameRoman: 'Apollo',
+                title: 'Dio del Sole, Musica, Poesia e Profezia',
+                parents: 'Zeus e Leto',
+                spouse: 'Vari amori mitologici',
+                siblings: 'Artemide (sorella gemella)',
+                children: ['Asclepio (medicina)', 'Orfeo'],
+                icon: 'fa-sun',
+                symbols: ['Lira musicale', 'Arco d\'oro', 'Corona d\'Alloro'],
+                desc: 'Dio dell\'armonia, della luce e della verità. Guidava il carro del Sole attraverso il cielo ed era il patrono del famoso oracolo di Delfi.'
+            },
+            artemide: {
+                id: 'artemide',
+                gen: '2gen',
+                nameGreek: 'ARTEMIDE',
+                nameRoman: 'Diana',
+                title: 'Dea della Caccia, Luna e Natura Selvaggia',
+                parents: 'Zeus e Leto',
+                spouse: 'Nessuno (Dea Vergine)',
+                siblings: 'Apollo (fratello gemello)',
+                children: ['Nessuno'],
+                icon: 'fa-moon',
+                symbols: ['Arco e Faretra d\'argento', 'Cerva sacra', 'Crescente lunare'],
+                desc: 'Protagonista indomabile dei boschi e delle foreste. Corre nei boschi con il suo arco d\'argento proteggendo i cuccioli d\'animale e i giovani.'
+            },
+            ares: {
+                id: 'ares',
+                gen: '2gen',
+                nameGreek: 'ARES',
+                nameRoman: 'Marte',
+                title: 'Dio della Guerra Violenta e Sanguinosa',
+                parents: 'Zeus ed Era',
+                spouse: 'Amante di Afrodite',
+                siblings: 'Ebe, Ilizia (e fratellastri olimpici)',
+                children: ['Deimos (Terrore)', 'Fobos (Paura)'],
+                icon: 'fa-skull-crossbones',
+                symbols: ['Elmo di bronzo', 'Spada & Lancia', 'Avvoltoio'],
+                desc: 'Incarna l\'impeto cieco della battaglia e il furore sconsiderato in guerra, in contrasto con la guerra riflessiva ed elegante di Atena.'
+            },
+            afrodite: {
+                id: 'afrodite',
+                gen: '2gen',
+                nameGreek: 'AFRODITE',
+                nameRoman: 'Venere',
+                title: 'Dea dell\'Amore, Bellezza e Desiderio',
+                parents: 'Nata dalla spuma del mare (o Zeus e Dione)',
+                spouse: 'Efesto',
+                siblings: 'Diversi a seconda dei miti',
+                children: ['Eros (Cupido)', 'Enea (eroe di Troia)'],
+                icon: 'fa-heart',
+                symbols: ['Colomba', 'Conchiglia marina', 'Rosa'],
+                desc: 'Dea di grazia e bellezza senza pari. Il suo giudizio con la mela d\'oro scatenò la leggendaria Guerra di Troia raccontata da Omero.'
+            },
+            ermes: {
+                id: 'ermes',
+                gen: '2gen',
+                nameGreek: 'ERMES',
+                nameRoman: 'Mercurio',
+                title: 'Messaggero degli Dei, Commercio e Viaggiatori',
+                parents: 'Zeus e Maia',
+                spouse: 'Vari amori',
+                siblings: 'Apollo, Atena, Ares ecc.',
+                children: ['Pan (dio dei pascoli)'],
+                icon: 'fa-shoe-prints',
+                symbols: ['Caduceo (bastone alato)', 'Sandali alati', 'Petaso (cappello)'],
+                desc: 'Messaggero velocissimo degli dei e psicopompo (guida delle anime verso l\'Oltretomba). Protegge i viaggiatori, i mercanti e l\'astuzia.'
+            }
+        };
+
+        /* QUIZ DATA */
+        const QUIZ_QUESTIONS = [
+            {
+                q: "Chi sono i due genitori di Persefone?",
+                options: ["Crono e Rea", "Zeus e Demetra", "Ade ed Era", "Apollo e Leto"],
+                correct: 1,
+                explain: "Persefone è figlia del re degli dei Zeus e della dea dell'agricoltura Demetra!"
+            },
+            {
+                q: "Qual è il nome romano corrispondente a Poseidone?",
+                options: ["Giove", "Marte", "Nettuno", "Plutone"],
+                correct: 2,
+                explain: "I Romani chiamavano Poseidone con il nome di Nettuno!"
+            },
+            {
+                q: "Per quale motivo Persefone trascorre 6 mesi negli Inferi e 6 sulla Terra?",
+                options: [
+                    "Perché ha mangiato 6 chicchi di melagrana negli Inferi",
+                    "Perché si era persa nei boschi",
+                    "Per punizione inflitta da Zeus",
+                    "Per imparare a coltivare il grano"
+                ],
+                correct: 0,
+                explain: "Mangiando 6 chicchi del frutto degli Inferi (la melagrana), è rimasta legata per sempre a quel regno per 6 mesi all'anno."
+            },
+            {
+                q: "Chi è la sorella gemella del dio Apollo?",
+                options: ["Atena", "Artemide", "Afrodite", "Era"],
+                correct: 1,
+                explain: "Apollo e Artemide sono fratelli gemelli, entrambi figli di Zeus e della titanide Leto!"
+            }
+        ];
+
+        /* STATE VARIABLES */
+        let currentNaming = 'greek'; // 'greek' or 'roman'
+        let selectedGodForInspection = null;
+        let quizCurrentScore = 0;
+        let matchingSelectedGod = null;
+        let matchingScore = 0;
+
+        // Sound synthesizer setup
+        let synth = null;
+        function playToneSound(type) {
+            try {
+                if (!synth) synth = new Tone.Synth().toDestination();
+                if (type === 'correct') {
+                    synth.triggerAttackRelease("C5", "8n");
+                } else if (type === 'wrong') {
+                    synth.triggerAttackRelease("G3", "8n");
+                } else if (type === 'select') {
+                    synth.triggerAttackRelease("E5", "16n");
+                }
+            } catch(e) { /* audio fallback */ }
+        }
+
+        // TAB SWITCHER
+        function switchTab(tabId) {
+            playToneSound('select');
+            document.querySelectorAll('.tab-view').forEach(view => view.classList.add('hidden'));
+            document.querySelectorAll('nav button').forEach(btn => {
+                btn.classList.remove('bg-amber-500/20', 'text-amber-300', 'border-amber-500/40');
+                btn.classList.add('bg-slate-800', 'text-slate-300', 'border-slate-700');
+            });
+
+            document.getElementById('view-' + tabId).classList.remove('hidden');
+            const activeBtn = document.getElementById('tab-btn-' + tabId);
+            activeBtn.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
+            activeBtn.classList.add('bg-amber-500/20', 'text-amber-300', 'border-amber-500/40');
+
+            if (tabId === 'flashcards') renderFlashcards();
+            if (tabId === 'matching') initMatchingGame();
+            if (tabId === 'quiz') renderQuiz();
+        }
+
+        // NAMING SWITCHER (GREEK vs ROMAN)
+        function setNamingConvention(type) {
+            playToneSound('select');
+            currentNaming = type;
+            const btnGreek = document.getElementById('btn-greek');
+            const btnRoman = document.getElementById('btn-roman');
+
+            if (type === 'greek') {
+                btnGreek.className = "px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-500 text-slate-900 transition-all";
+                btnRoman.className = "px-2.5 py-1 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
+            } else {
+                btnRoman.className = "px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-500 text-slate-900 transition-all";
+                btnGreek.className = "px-2.5 py-1 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
+            }
+
+            // Update all node labels in tree
+            Object.keys(GODS_DATA).forEach(godId => {
+                const node = document.getElementById('node-' + godId);
+                if (node) {
+                    const nameElem = node.querySelector('.god-name');
+                    const romanElem = node.querySelector('.god-roman');
+                    const data = GODS_DATA[godId];
+
+                    if (type === 'greek') {
+                        if (nameElem) nameElem.innerText = data.nameGreek;
+                        if (romanElem) romanElem.innerText = `(${data.nameRoman})`;
+                    } else {
+                        if (nameElem) nameElem.innerText = data.nameRoman.toUpperCase();
+                        if (romanElem) romanElem.innerText = `(Gr: ${data.nameGreek})`;
+                    }
+                }
+            });
+
+            if (!document.getElementById('view-flashcards').classList.contains('hidden')) {
+                renderFlashcards();
+            }
+        }
+
+        // HIGHLIGHT FAMILY RELATIONS IN TREE
+        function inspectGod(godId) {
+            playToneSound('select');
+            const data = GODS_DATA[godId];
+            if (!data) return;
+
+            selectedGodForInspection = godId;
+
+            // Reset all previous highlights
+            resetHighlights();
+
+            // Legend display
+            const legend = document.getElementById('relationship-legend');
+            const legendName = document.getElementById('legend-god-name');
+            legend.classList.remove('hidden');
+            legendName.innerText = currentNaming === 'greek' ? data.nameGreek : data.nameRoman;
+
+            // Highlight Target Node
+            const targetNode = document.getElementById('node-' + godId);
+            if (targetNode) {
+                targetNode.classList.add('ring-4', 'ring-amber-400', 'scale-105');
+            }
+
+            // 1. Highlight Parents (Gold)
+            if (data.parents.includes('Crono')) {
+                const parentNode = document.getElementById('node-crono_rea');
+                if (parentNode) parentNode.classList.add('node-highlight-parent');
+            }
+            if (godId === 'persefone') {
+                document.getElementById('node-zeus')?.classList.add('node-highlight-parent');
+                document.getElementById('node-demetra')?.classList.add('node-highlight-parent');
+            }
+
+            // 2. Highlight Children (Sky Blue)
+            if (data.children) {
+                data.children.forEach(childId => {
+                    const childNode = document.getElementById('node-' + childId);
+                    if (childNode) childNode.classList.add('node-highlight-child');
+                });
+            }
+
+            // 3. Highlight Spouse (Rose)
+            if (godId === 'zeus') document.getElementById('node-era')?.classList.add('node-highlight-spouse');
+            if (godId === 'era') document.getElementById('node-zeus')?.classList.add('node-highlight-spouse');
+            if (godId === 'ade') document.getElementById('node-persefone')?.classList.add('node-highlight-spouse');
+            if (godId === 'persefone') document.getElementById('node-ade')?.classList.add('node-highlight-spouse');
+
+            // 4. Highlight Siblings (Purple)
+            const firstGen = ['zeus', 'era', 'poseidone', 'ade', 'demetra'];
+            if (firstGen.includes(godId)) {
+                firstGen.forEach(sibId => {
+                    if (sibId !== godId) {
+                        document.getElementById('node-' + sibId)?.classList.add('node-highlight-sibling');
+                    }
+                });
+            }
+
+            // Open Detail Modal
+            openGodModal(data);
+        }
+
+        function resetHighlights() {
+            document.querySelectorAll('.god-node').forEach(node => {
+                node.className = node.className.replace(/node-highlight-\w+/g, '').replace(/ring-4|ring-amber-400|scale-105/g, '');
+            });
+            document.getElementById('relationship-legend').classList.add('hidden');
+        }
+
+        // MODAL FUNCTIONS
+        function openGodModal(data) {
+            document.getElementById('modal-title').innerText = currentNaming === 'greek' ? data.nameGreek : data.nameRoman;
+            document.getElementById('modal-roman').innerText = currentNaming === 'greek' ? `(Romano: ${data.nameRoman})` : `(Greco: ${data.nameGreek})`;
+            document.getElementById('modal-subtitle').innerText = data.title;
+            document.getElementById('modal-icon').innerHTML = `<i class="fa-solid ${data.icon}"></i>`;
+
+            document.getElementById('modal-parents').innerText = data.parents;
+            document.getElementById('modal-spouse').innerText = data.spouse;
+            document.getElementById('modal-siblings').innerText = data.siblings;
+            document.getElementById('modal-children').innerText = Array.isArray(data.children) 
+                ? data.children.map(c => GODS_DATA[c]?.nameGreek || c).join(', ') 
+                : data.children;
+
+            const symbolsContainer = document.getElementById('modal-symbols');
+            symbolsContainer.innerHTML = '';
+            data.symbols.forEach(sym => {
+                symbolsContainer.innerHTML += `<span class="px-2.5 py-1 rounded-lg bg-slate-800 text-amber-300 border border-slate-700 font-semibold">${sym}</span>`;
+            });
+
+            document.getElementById('modal-description').innerText = data.desc;
+
+            document.getElementById('god-modal').classList.remove('hidden');
+        }
+
+        function closeGodModal() {
+            document.getElementById('god-modal').classList.add('hidden');
+            window.speechSynthesis.cancel();
+        }
+
+        // TEXT TO SPEECH (SINTESI VOCALE INCLUSIVA)
+        function readGodDescription() {
+            if (!('speechSynthesis' in window)) {
+                alert("La sintesi vocale non è supportata da questo browser.");
+                return;
+            }
+            window.speechSynthesis.cancel();
+
+            const textToRead = `${document.getElementById('modal-title').innerText}. ${document.getElementById('modal-subtitle').innerText}. ${document.getElementById('modal-description').innerText}`;
+            const utterance = new SpeechSynthesisUtterance(textToRead);
+            utterance.lang = 'it-IT';
+            utterance.rate = 0.9; // Slightly slower for clear learning accessibility
+
+            const btn = document.getElementById('btn-read-aloud');
+            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> In lettura...`;
+
+            utterance.onend = () => {
+                btn.innerHTML = `<i class="fa-solid fa-volume-high"></i> Ascolta il Mito (Sintesi Vocale)`;
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // RENDER FLASHCARDS
+        function renderFlashcards() {
+            const container = document.getElementById('flashcards-grid');
+            container.innerHTML = '';
+
+            Object.values(GODS_DATA).forEach(god => {
+                if (god.id === 'crono_rea') return;
+
+                const displayName = currentNaming === 'greek' ? god.nameGreek : god.nameRoman;
+                const subName = currentNaming === 'greek' ? god.nameRoman : god.nameGreek;
+
+                const cardHtml = `
+                    <div onclick="this.classList.toggle('rotate-y-180')" class="perspective-1000 h-64 cursor-pointer group">
+                        <div class="relative w-full h-full duration-500 transform-style-3d transition-transform rounded-2xl shadow-xl">
+                            
+                            <!-- FRONT -->
+                            <div class="absolute inset-0 bg-slate-800 border-2 border-amber-500/30 rounded-2xl p-6 flex flex-col justify-between items-center text-center backface-hidden group-hover:border-amber-400">
+                                <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold uppercase tracking-wider">${god.gen === '1gen' ? '1ª Generazione' : '2ª Generazione'}</span>
+                                <div class="w-16 h-16 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-3xl border border-amber-400/40">
+                                    <i class="fa-solid ${god.icon}"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-cinzel text-xl font-bold text-amber-300">${displayName}</h3>
+                                    <p class="text-xs text-slate-400 italic">(${subName})</p>
+                                </div>
+                                <span class="text-[11px] text-slate-400 flex items-center gap-1"><i class="fa-solid fa-rotate"></i> Clicca per girare</span>
+                            </div>
+
+                            <!-- BACK -->
+                            <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-amber-950/40 border-2 border-amber-400 rounded-2xl p-5 flex flex-col justify-between text-xs text-slate-200 rotate-y-180 backface-hidden">
+                                <div>
+                                    <h4 class="font-cinzel font-bold text-amber-300 text-sm border-b border-amber-500/30 pb-1 mb-2">${displayName} - Dettagli</h4>
+                                    <p class="text-[11px] text-slate-300 mb-2"><strong>Ruolo:</strong> ${god.title}</p>
+                                    <p class="text-[11px] text-slate-300 mb-2"><strong>Genitori:</strong> ${god.parents}</p>
+                                    <p class="text-[11px] text-slate-300"><strong>Simboli:</strong> ${god.symbols.join(', ')}</p>
+                                </div>
+                                <p class="text-[10px] text-amber-400 italic font-semibold text-center border-t border-slate-700/60 pt-2">Ripasso rapido di Mitologia</p>
+                            </div>
+
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            });
+        }
+
+        // MATCHING GAME LOGIC
+        const MATCHING_PAIRS = [
+            { godId: 'zeus', godName: 'Zeus', symbol: 'Fulmine ed Aquila' },
+            { godId: 'poseidone', godName: 'Poseidone', symbol: 'Tridente Marino' },
+            { godId: 'ade', godName: 'Ade', symbol: 'Cerbero (Cane a 3 teste)' },
+            { godId: 'atena', godName: 'Atena', symbol: 'Civetta della Saggezza' },
+            { godId: 'apollo', godName: 'Apollo', symbol: 'Lira d\'oro & Sole' },
+            { godId: 'persefone', godName: 'Persefone', symbol: 'Chicchi di Melagrana' }
+        ];
+
+        let selectedGodPair = null;
+        let selectedSymbolPair = null;
+
+        function initMatchingGame() {
+            matchingScore = 0;
+            document.getElementById('matching-score').innerText = '0';
+            document.getElementById('matching-feedback').className = "hidden text-center p-3 rounded-xl font-bold text-xs sm:text-sm";
+
+            const godsContainer = document.getElementById('matching-gods');
+            const symbolsContainer = document.getElementById('matching-symbols');
+
+            godsContainer.innerHTML = '';
+            symbolsContainer.innerHTML = '';
+
+            // Shuffle symbols
+            const shuffledSymbols = [...MATCHING_PAIRS].sort(() => Math.random() - 0.5);
+
+            MATCHING_PAIRS.forEach(pair => {
+                godsContainer.innerHTML += `
+                    <button id="match-god-${pair.godId}" onclick="selectMatchingGod('${pair.godId}')" class="p-3 bg-slate-900 border border-slate-700 rounded-xl text-left hover:border-amber-400 text-xs text-slate-200 flex items-center justify-between font-bold transition-all">
+                        <span>${pair.godName}</span>
+                        <i class="fa-solid fa-circle-dot text-slate-600"></i>
+                    </button>
+                `;
+            });
+
+            shuffledSymbols.forEach(pair => {
+                symbolsContainer.innerHTML += `
+                    <button id="match-sym-${pair.godId}" onclick="selectMatchingSymbol('${pair.godId}')" class="p-3 bg-slate-900 border border-slate-700 rounded-xl text-left hover:border-sky-400 text-xs text-slate-200 flex items-center justify-between font-semibold transition-all">
+                        <span>${pair.symbol}</span>
+                        <i class="fa-solid fa-shapes text-slate-600"></i>
+                    </button>
+                `;
+            });
+        }
+
+        function selectMatchingGod(godId) {
+            playToneSound('select');
+            selectedGodPair = godId;
+            document.querySelectorAll('#matching-gods button').forEach(b => b.classList.remove('border-amber-400', 'bg-amber-950/40'));
+            document.getElementById('match-god-' + godId).classList.add('border-amber-400', 'bg-amber-950/40');
+            checkMatching();
+        }
+
+        function selectMatchingSymbol(godId) {
+            playToneSound('select');
+            selectedSymbolPair = godId;
+            document.querySelectorAll('#matching-symbols button').forEach(b => b.classList.remove('border-sky-400', 'bg-sky-950/40'));
+            document.getElementById('match-sym-' + godId).classList.add('border-sky-400', 'bg-sky-950/40');
+            checkMatching();
+        }
+
+        function checkMatching() {
+            if (selectedGodPair && selectedSymbolPair) {
+                const feedback = document.getElementById('matching-feedback');
+                feedback.classList.remove('hidden');
+
+                if (selectedGodPair === selectedSymbolPair) {
+                    playToneSound('correct');
+                    feedback.className = "text-center p-3 rounded-xl font-bold text-xs sm:text-sm bg-emerald-950/80 border border-emerald-500 text-emerald-300";
+                    feedback.innerHTML = '<i class="fa-solid fa-circle-check"></i> Associazione Corretta!';
+                    
+                    document.getElementById('match-god-' + selectedGodPair).disabled = true;
+                    document.getElementById('match-sym-' + selectedSymbolPair).disabled = true;
+                    document.getElementById('match-god-' + selectedGodPair).classList.add('opacity-40', 'bg-emerald-950/20');
+                    document.getElementById('match-sym-' + selectedSymbolPair).classList.add('opacity-40', 'bg-emerald-950/20');
+
+                    matchingScore++;
+                    document.getElementById('matching-score').innerText = matchingScore;
+
+                    if (matchingScore === MATCHING_PAIRS.length) {
+                        feedback.innerHTML = '<i class="fa-solid fa-trophy text-amber-400 text-base"></i> Eccellente! Hai associato correttamente tutti i simboli dell\'Olimpo!';
+                    }
+                } else {
+                    playToneSound('wrong');
+                    feedback.className = "text-center p-3 rounded-xl font-bold text-xs sm:text-sm bg-rose-950/80 border border-rose-500 text-rose-300";
+                    feedback.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Non corrisponde! Riprova.';
+                }
+
+                selectedGodPair = null;
+                selectedSymbolPair = null;
+            }
+        }
+
+        function resetMatchingGame() {
+            initMatchingGame();
+        }
+
+        // QUIZ LOGIC
+        function renderQuiz() {
+            const container = document.getElementById('quiz-container');
+            container.innerHTML = '';
+            quizCurrentScore = 0;
+            document.getElementById('quiz-score').innerText = '0';
+
+            QUIZ_QUESTIONS.forEach((qObj, index) => {
+                const qCard = document.createElement('div');
+                qCard.className = "bg-slate-900/90 p-5 rounded-xl border border-slate-700 space-y-4";
+                
+                let optionsHtml = '';
+                qObj.options.forEach((opt, optIdx) => {
+                    optionsHtml += `
+                        <button onclick="submitAnswer(this, ${index}, ${optIdx})" class="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-xs text-slate-200 transition-all flex items-center justify-between font-medium">
+                            <span>${String.fromCharCode(65 + optIdx)}) ${opt}</span>
+                            <i class="fa-regular fa-circle text-slate-500"></i>
+                        </button>
+                    `;
+                });
+
+                qCard.innerHTML = `
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <span class="text-xs text-indigo-400 font-bold uppercase tracking-wider">Domanda ${index + 1} di ${QUIZ_QUESTIONS.length}</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">10 Punti</span>
+                    </div>
+                    <p class="text-sm font-semibold text-slate-100">${qObj.q}</p>
+                    <div class="space-y-2 font-sans">${optionsHtml}</div>
+                    <div class="feedback-box hidden text-xs font-semibold p-3 rounded-xl"></div>
+                `;
+
+                container.appendChild(qCard);
+            });
+        }
+
+        function submitAnswer(btn, qIndex, optIndex) {
+            const parent = btn.closest('.bg-slate-900\\/90');
+            const buttons = parent.querySelectorAll('button');
+            const feedbackBox = parent.querySelector('.feedback-box');
+            const qObj = QUIZ_QUESTIONS[qIndex];
+
+            buttons.forEach(b => b.disabled = true);
+
+            feedbackBox.classList.remove('hidden');
+
+            if (optIndex === qObj.correct) {
+                playToneSound('correct');
+                btn.classList.remove('bg-slate-800');
+                btn.classList.add('bg-emerald-600', 'text-white');
+                feedbackBox.className = "feedback-box text-xs font-semibold p-3 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-300";
+                feedbackBox.innerHTML = `<i class="fa-solid fa-circle-check"></i> Risposta Esatta! ${qObj.explain}`;
+
+                quizCurrentScore += 10;
+                document.getElementById('quiz-score').innerText = quizCurrentScore;
+            } else {
+                playToneSound('wrong');
+                btn.classList.remove('bg-slate-800');
+                btn.classList.add('bg-rose-600', 'text-white');
+                feedbackBox.className = "feedback-box text-xs font-semibold p-3 rounded-xl bg-rose-950/80 border border-rose-500/50 text-rose-300";
+                feedbackBox.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Errato. ${qObj.explain}`;
+            }
+        }
+
+        // SEARCH FILTER IN TREE
+        function handleSearch() {
+            const query = document.getElementById('search-god').value.toLowerCase().trim();
+            Object.keys(GODS_DATA).forEach(godId => {
+                const node = document.getElementById('node-' + godId);
+                if (!node) return;
+                const god = GODS_DATA[godId];
+                
+                const matches = god.nameGreek.toLowerCase().includes(query) ||
+                                god.nameRoman.toLowerCase().includes(query) ||
+                                god.title.toLowerCase().includes(query) ||
+                                god.symbols.some(s => s.toLowerCase().includes(query));
+
+                if (query === '' || matches) {
+                    node.style.opacity = '1';
+                    node.style.filter = 'none';
+                } else {
+                    node.style.opacity = '0.2';
+                    node.style.filter = 'grayscale(100%)';
+                }
+            });
+        }
+
+        function filterTree(gen) {
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                b.className = "filter-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 transition-all";
+            });
+            event.target.className = "filter-btn active px-2.5 py-1 rounded-lg bg-amber-500 text-slate-900 font-semibold transition-all";
+
+            Object.keys(GODS_DATA).forEach(godId => {
+                const node = document.getElementById('node-' + godId);
+                if (!node) return;
+                const god = GODS_DATA[godId];
+
+                if (gen === 'all' || god.gen === gen) {
+                    node.style.display = 'flex';
+                } else {
+                    node.style.display = 'none';
+                }
+            });
+        }
+
+        // INITIALIZE ON LOAD
+        window.onload = function() {
+            console.log("Olympos Interattivo Pronto!");
+        };
+    </script>
+</body>
+</html>
